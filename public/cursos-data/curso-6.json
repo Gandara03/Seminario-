@@ -1,0 +1,45 @@
+{
+  "id": 6,
+  "nombre": "Introducción a la Ciencia de Datos",
+  "categoria": "Datos",
+  "descripcion": "Descubre los conceptos clave de la ciencia de datos y el análisis.",
+  "objetivos": [
+    "Comprender el ciclo de vida de un proyecto de datos",
+    "Aplicar técnicas básicas de análisis",
+    "Visualizar datos de manera efectiva"
+  ],
+  "nivel": "Básico",
+  "duracion": "4 semanas",
+  "requisitos": [
+    "Conocimientos básicos de matemáticas"
+  ],
+  "temario": [
+    "Introducción a la ciencia de datos",
+    "Análisis exploratorio",
+    "Visualización de datos"
+  ],
+  "materiales": [
+    { "nombre": "Manual de ciencia de datos", "url": "/pdfs/ciencia-datos.pdf" }
+  ],
+  "modulos": [
+    {
+      "titulo": "Introducción a la ciencia de datos",
+      "contenido": "¿Qué es la ciencia de datos y por qué es importante?...",
+      "videoUrl": "/videos/ciencia-intro.mp4"
+    },
+    {
+      "titulo": "Análisis exploratorio",
+      "contenido": "Aprende a analizar y limpiar datos...",
+      "videoUrl": "/videos/ciencia-analisis.mp4"
+    }
+  ],
+  "comentarios": [
+    {
+      "usuario": "Pedro",
+      "fecha": "2024-06-06",
+      "calificacion": 4,
+      "comentario": "Muy claro para principiantes."
+    }
+  ],
+  "imagen": "/cursos/ciencia-datos.jpeg"
+} 

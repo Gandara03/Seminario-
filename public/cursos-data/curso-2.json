@@ -1,0 +1,46 @@
+{
+  "id": 2,
+  "nombre": "Diseño de Interfaces Modernas",
+  "categoria": "Diseño",
+  "descripcion": "Domina las técnicas de diseño de interfaces centradas en el usuario.",
+  "objetivos": [
+    "Comprender los principios de UX/UI",
+    "Aplicar diseño visual efectivo",
+    "Crear prototipos interactivos"
+  ],
+  "nivel": "Intermedio",
+  "duracion": "3 semanas",
+  "requisitos": [
+    "Conocimientos básicos de diseño gráfico"
+  ],
+  "temario": [
+    "Principios de UX",
+    "Diseño visual y tipografía",
+    "Herramientas de prototipado"
+  ],
+  "materiales": [
+    { "nombre": "Guía de UX", "url": "/pdfs/ux.pdf" },
+    { "nombre": "Plantillas de prototipos", "url": "/pdfs/prototipos.pdf" }
+  ],
+  "modulos": [
+    {
+      "titulo": "Principios de UX",
+      "contenido": "Aprende los fundamentos de la experiencia de usuario...",
+      "videoUrl": "/videos/ux.mp4"
+    },
+    {
+      "titulo": "Diseño visual y tipografía",
+      "contenido": "Explora el uso del color, la tipografía y la composición visual...",
+      "videoUrl": "/videos/visual.mp4"
+    }
+  ],
+  "comentarios": [
+    {
+      "usuario": "Carlos",
+      "fecha": "2024-06-02",
+      "calificacion": 4,
+      "comentario": "Muy útil para mejorar mis diseños."
+    }
+  ],
+  "imagen": "/cursos/uiux.png"
+} 

@@ -1,0 +1,45 @@
+{
+  "id": 3,
+  "nombre": "Estrategias de Marketing Digital",
+  "categoria": "Marketing",
+  "descripcion": "Desarrolla estrategias efectivas para promocionar tu negocio en línea.",
+  "objetivos": [
+    "Comprender el marketing digital actual",
+    "Crear campañas efectivas",
+    "Medir resultados y optimizar"
+  ],
+  "nivel": "Básico",
+  "duracion": "3 semanas",
+  "requisitos": [
+    "Ninguno"
+  ],
+  "temario": [
+    "Introducción al marketing digital",
+    "Redes sociales y contenido",
+    "Analítica y optimización"
+  ],
+  "materiales": [
+    { "nombre": "Guía de marketing", "url": "/pdfs/marketing.pdf" }
+  ],
+  "modulos": [
+    {
+      "titulo": "Introducción al marketing digital",
+      "contenido": "Conoce los conceptos clave y el ecosistema digital...",
+      "videoUrl": "/videos/marketing-intro.mp4"
+    },
+    {
+      "titulo": "Redes sociales y contenido",
+      "contenido": "Aprende a crear contenido atractivo y gestionar redes sociales...",
+      "videoUrl": "/videos/social.mp4"
+    }
+  ],
+  "comentarios": [
+    {
+      "usuario": "Laura",
+      "fecha": "2024-06-03",
+      "calificacion": 5,
+      "comentario": "Me ayudó a lanzar mi primer campaña online."
+    }
+  ],
+  "imagen": "/cursos/marketing.png"
+} 

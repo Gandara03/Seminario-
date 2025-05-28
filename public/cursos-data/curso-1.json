@@ -1,0 +1,49 @@
+{
+  "id": 1,
+  "nombre": "Introducción al Desarrollo Frontend",
+  "categoria": "Desarrollo Web",
+  "descripcion": "Aprende los fundamentos de HTML, CSS y JavaScript para crear sitios web interactivos.",
+  "objetivos": [
+    "Comprender la estructura básica de una página web",
+    "Aplicar estilos con CSS",
+    "Agregar interactividad con JavaScript"
+  ],
+  "nivel": "Básico",
+  "duracion": "4 semanas",
+  "requisitos": [
+    "Ninguno, solo ganas de aprender"
+  ],
+  "temario": [
+    "HTML Básico",
+    "CSS y diseño responsivo",
+    "JavaScript y DOM"
+  ],
+  "materiales": [
+    { "nombre": "Guía de HTML", "url": "/pdfs/html.pdf" },
+    { "nombre": "Ejercicios CSS", "url": "/pdfs/css-ejercicios.pdf" }
+  ],
+  "modulos": [
+    {
+      "titulo": "HTML Básico",
+      "contenido": "En este módulo aprenderás la estructura de una página HTML...",
+      "videoUrl": "/videos/html-basico.mp4",
+      "materiales": [
+        { "nombre": "Presentación HTML", "url": "/pdfs/html-presentacion.pdf" }
+      ]
+    },
+    {
+      "titulo": "CSS y diseño responsivo",
+      "contenido": "Aprende a dar estilo y adaptar tu web a cualquier dispositivo...",
+      "videoUrl": "/videos/css.mp4"
+    }
+  ],
+  "comentarios": [
+    {
+      "usuario": "Ana",
+      "fecha": "2024-06-01",
+      "calificacion": 5,
+      "comentario": "¡Muy buen curso!"
+    }
+  ],
+  "imagen": "/cursos/frontend.png"
+} 

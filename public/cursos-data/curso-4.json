@@ -1,0 +1,45 @@
+{
+  "id": 4,
+  "nombre": "Inglés para Profesionales",
+  "categoria": "Idiomas",
+  "descripcion": "Mejora tu inglés enfocado en el ámbito profesional.",
+  "objetivos": [
+    "Desarrollar vocabulario profesional",
+    "Mejorar la comunicación oral y escrita",
+    "Preparar presentaciones y reuniones en inglés"
+  ],
+  "nivel": "Intermedio",
+  "duracion": "5 semanas",
+  "requisitos": [
+    "Nivel básico de inglés"
+  ],
+  "temario": [
+    "Vocabulario profesional",
+    "Redacción de emails",
+    "Presentaciones orales"
+  ],
+  "materiales": [
+    { "nombre": "Guía de inglés profesional", "url": "/pdfs/ingles.pdf" }
+  ],
+  "modulos": [
+    {
+      "titulo": "Vocabulario profesional",
+      "contenido": "Aprende palabras y frases clave para el entorno laboral...",
+      "videoUrl": "/videos/ingles-vocab.mp4"
+    },
+    {
+      "titulo": "Redacción de emails",
+      "contenido": "Cómo escribir correos electrónicos efectivos en inglés...",
+      "videoUrl": "/videos/ingles-emails.mp4"
+    }
+  ],
+  "comentarios": [
+    {
+      "usuario": "Miguel",
+      "fecha": "2024-06-04",
+      "calificacion": 4,
+      "comentario": "Muy práctico para el trabajo."
+    }
+  ],
+  "imagen": "/cursos/ingles.png"
+} 

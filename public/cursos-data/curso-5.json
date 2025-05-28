@@ -1,0 +1,45 @@
+{
+  "id": 5,
+  "nombre": "Gestión de Negocios Modernos",
+  "categoria": "Negocios",
+  "descripcion": "Aprende a gestionar y escalar negocios en la era digital.",
+  "objetivos": [
+    "Comprender modelos de negocio actuales",
+    "Aplicar herramientas digitales",
+    "Desarrollar estrategias de crecimiento"
+  ],
+  "nivel": "Avanzado",
+  "duracion": "6 semanas",
+  "requisitos": [
+    "Conocimientos básicos de negocios"
+  ],
+  "temario": [
+    "Modelos de negocio",
+    "Herramientas digitales",
+    "Estrategias de crecimiento"
+  ],
+  "materiales": [
+    { "nombre": "Manual de negocios", "url": "/pdfs/negocios.pdf" }
+  ],
+  "modulos": [
+    {
+      "titulo": "Modelos de negocio",
+      "contenido": "Explora los modelos de negocio más exitosos de la actualidad...",
+      "videoUrl": "/videos/negocios-modelos.mp4"
+    },
+    {
+      "titulo": "Herramientas digitales",
+      "contenido": "Descubre las mejores herramientas para la gestión moderna...",
+      "videoUrl": "/videos/negocios-herramientas.mp4"
+    }
+  ],
+  "comentarios": [
+    {
+      "usuario": "Sofía",
+      "fecha": "2024-06-05",
+      "calificacion": 5,
+      "comentario": "Ideal para emprendedores."
+    }
+  ],
+  "imagen": "/cursos/negocios.jpeg"
+} 
