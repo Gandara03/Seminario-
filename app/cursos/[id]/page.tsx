@@ -2,7 +2,9 @@
 import Link from "next/link"
 import { Play, Download, Star, CheckCircle, BookOpen, Heart } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react"
+import { useAuth } from '@/lib/AuthContext';
+import { agregarCursoUsuario, getCursosUsuario } from '@/lib/cursosUsuario';
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,8 +12,9 @@ import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
-export default function CursoPage({ params }: { params: { id: string } }) {
+export default function CursoPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: session } = useSession();
+  const { id } = use(params);
   const [curso, setCurso] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState("");
@@ -19,11 +22,13 @@ export default function CursoPage({ params }: { params: { id: string } }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [completados, setCompletados] = useState<boolean[]>([]);
+  const { user, isAdmin, logout } = useAuth();
+  const [inscrito, setInscrito] = useState(false);
 
   useEffect(() => {
     async function fetchCurso() {
       setLoading(true);
-      const res = await fetch(`/cursos-data/curso-${params.id}.json`);
+      const res = await fetch(`/api/cursos/${id}`);
       if (!res.ok) {
         setCurso(null);
         setLoading(false);
@@ -36,7 +41,22 @@ export default function CursoPage({ params }: { params: { id: string } }) {
       setLoading(false);
     }
     fetchCurso();
-  }, [params.id]);
+  }, [id]);
+
+  // Verificar si el usuario ya está inscrito en el curso
+  useEffect(() => {
+    if (!user || !curso) return;
+    getCursosUsuario(user.uid, 'enProgreso').then((cursos) => {
+      setInscrito(cursos.some((c: any) => c.id === curso.id));
+    });
+  }, [user, curso]);
+
+  // Función para inscribirse
+  const handleInscribirse = async () => {
+    if (!user || !curso) return;
+    await agregarCursoUsuario(user.uid, 'enProgreso', { ...curso, id: curso.id });
+    setInscrito(true);
+  };
 
   // Calcular porcentaje de avance
   const progreso = completados.length > 0 ? Math.round((completados.filter(Boolean).length / completados.length) * 100) : 0;
@@ -68,6 +88,13 @@ export default function CursoPage({ params }: { params: { id: string } }) {
     setIsFavorite(!isFavorite);
   };
 
+  // Agregar función para extraer el ID de YouTube
+  function extraerIdYoutube(url: string) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : "";
+  }
+
   if (loading) {
     return <div className="container mx-auto px-4 py-12 text-center text-lg text-gray-500">Cargando curso...</div>;
   }
@@ -84,12 +111,30 @@ export default function CursoPage({ params }: { params: { id: string } }) {
             EduPlus
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/auth" className="text-sm font-medium text-gray-600 hover:text-emerald-600">
-              Iniciar sesión
-            </Link>
-            <Button asChild>
-              <Link href="/auth?register=true">Registrarse</Link>
-            </Button>
+            {user ? (
+              <>
+                {isAdmin && (
+                  <Button asChild>
+                    <Link href="/admin">Panel de administrador</Link>
+                  </Button>
+                )}
+                <Button asChild>
+                  <Link href="/perfil">Mi perfil</Link>
+                </Button>
+                <Button onClick={logout}>
+                  Cerrar sesión
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth" className="text-sm font-medium text-gray-600 hover:text-emerald-600">
+                  Iniciar sesión
+                </Link>
+                <Button asChild>
+                  <Link href="/auth?register=true">Registrarse</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -132,9 +177,21 @@ export default function CursoPage({ params }: { params: { id: string } }) {
                   <Heart className={`h-6 w-6 ${isFavorite ? 'fill-current' : ''}`} />
                 </Button>
               </div>
-              {curso.modulos?.[0]?.videoUrl && (
-                <Button className="absolute rounded-full w-16 h-16 flex items-center justify-center">
-                  <Play size={24} />
+              {/* Botón de inscripción */}
+              {user && !inscrito && (
+                <Button
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-full shadow-lg text-lg"
+                  onClick={handleInscribirse}
+                >
+                  Inscribirse gratis
+                </Button>
+              )}
+              {user && inscrito && (
+                <Button
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-emerald-100 text-emerald-700 px-8 py-3 rounded-full shadow text-lg cursor-default"
+                  disabled
+                >
+                  Ya estás inscrito
                 </Button>
               )}
             </div>
@@ -176,10 +233,23 @@ export default function CursoPage({ params }: { params: { id: string } }) {
                       </div>
                       <p className="text-gray-700 mb-2">{mod.contenido}</p>
                       {mod.videoUrl && (
-                        <video controls className="w-full rounded mb-2">
-                          <source src={mod.videoUrl} type="video/mp4" />
-                          Tu navegador no soporta el video.
-                        </video>
+                        <div className="relative w-full aspect-video mb-2">
+                          {(mod.videoUrl.includes("youtube.com") || mod.videoUrl.includes("youtu.be")) ? (
+                            <iframe
+                              className="absolute top-0 left-0 w-full h-full rounded"
+                              src={`https://www.youtube.com/embed/${extraerIdYoutube(mod.videoUrl)}`}
+                              title="YouTube video player"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            ></iframe>
+                          ) : (
+                            <video controls className="absolute top-0 left-0 w-full h-full object-cover rounded">
+                              <source src={mod.videoUrl} type="video/mp4" />
+                              Tu navegador no soporta el video.
+                            </video>
+                          )}
+                        </div>
                       )}
                       {mod.materiales && mod.materiales.length > 0 && (
                         <div className="mt-2">

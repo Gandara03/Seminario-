@@ -16,8 +16,10 @@ import {
   FileText,
   MoreHorizontal,
 } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useAuth } from '@/lib/AuthContext';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,38 +40,38 @@ interface Curso {
 }
 
 export default function AdminPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [cursos, setCursos] = useState<Curso[]>([]);
+  const [cursos, setCursos] = useState<any[]>([]);
+  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const { user, isAdmin, loading } = useAuth();
 
   useEffect(() => {
-    if (status === "authenticated" && (session?.user as any)?.role !== "admin") {
-      router.replace("/");
+    if (!user || !isAdmin) {
+      router.replace('/');
     }
-  }, [status, session, router]);
+  }, [user, isAdmin, router]);
 
   useEffect(() => {
-    async function fetchCursos() {
+    async function fetchData() {
       try {
-        const response = await fetch("/api/cursos-list");
-        const files = await response.json();
-        const cursosData = await Promise.all(
-          files.map(async (file) => {
-            const res = await fetch(`/cursos-data/${file}`);
-            return await res.json();
-          })
-        );
-        setCursos(cursosData);
+        const cursosRes = await fetch('/api/admin/cursos');
+        const cursosData = await cursosRes.json();
+        setCursos(cursosData.ok ? cursosData.cursos : []);
+        const usuariosRes = await fetch('/api/admin/usuarios');
+        const usuariosData = await usuariosRes.json();
+        setUsuarios(usuariosData.ok ? usuariosData.usuarios : []);
       } catch (error) {
-        console.error("Error cargando cursos:", error);
+        setCursos([]);
+        setUsuarios([]);
+        console.error("Error cargando datos:", error);
       }
     }
-    fetchCursos();
+    fetchData();
   }, []);
 
-  if (status === "loading") return <div>Cargando...</div>;
-  if (status === "unauthenticated") return <div>No autorizado</div>;
+  if (loading) return <div>Cargando...</div>;
+  if (!user || !isAdmin) return <div>No autorizado</div>;
 
   // Filtrado de cursos por búsqueda
   const cursosFiltrados = cursos.filter((curso) =>
@@ -77,18 +79,18 @@ export default function AdminPage() {
   );
 
   // Eliminar curso
-  const handleEliminarCurso = (id: number) => {
+  const handleEliminarCurso = (id: string) => {
     setCursos(cursos.filter((curso) => curso.id !== id));
   };
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">Bienvenido, {(session?.user as any)?.name}</h1>
+        <h1 className="text-2xl font-bold mb-2">Bienvenido, {(user as any)?.name}</h1>
         <p className="text-gray-600">Gestiona cursos, usuarios y contenido de la plataforma</p>
       </div>
       {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-500">Total de cursos</CardTitle>
@@ -100,20 +102,11 @@ export default function AdminPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Usuarios activos</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Usuarios registrados</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">2,845</div>
+            <div className="text-3xl font-bold">{usuarios.length}</div>
             <p className="text-xs text-emerald-600 mt-1">+8% desde el mes pasado</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Cursos completados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">1,432</div>
-            <p className="text-xs text-emerald-600 mt-1">+15% desde el mes pasado</p>
           </CardContent>
         </Card>
       </div>
@@ -144,10 +137,8 @@ export default function AdminPage() {
             { key: "status", label: "Estado" },
             { key: "students", label: "Estudiantes" },
           ]}
-          onDelete={handleEliminarCurso}
         />
       </div>
-      {/* Modal para nuevo curso (puedes agregarlo aquí si lo tienes implementado) */}
     </div>
   );
 }

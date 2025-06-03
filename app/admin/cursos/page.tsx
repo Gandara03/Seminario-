@@ -1,15 +1,19 @@
 "use client";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import CursosTable from "@/components/CursosTable";
+import { useAuth } from '@/lib/AuthContext';
+import { db, storage } from '@/lib/firebase';
+import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getCursosUsuario, agregarCursoUsuario, quitarCursoUsuario } from '@/lib/cursosUsuario';
 
 interface Curso {
-  id: number;
+  id: string;
   nombre: string;
   descripcion: string;
   nivel: string;
@@ -20,10 +24,12 @@ interface Curso {
   modulos?: any[];
   comentarios?: any[];
   imagen?: string;
+  videoUrl?: string;
+  pdfUrl?: string;
+  titulo?: string;
 }
 
 export default function CursosAdminPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,51 +37,144 @@ export default function CursosAdminPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    descripcion: '',
+    nivel: '',
+    duracion: '',
+  });
+  const { user, isAdmin, loading } = useAuth();
+  const [completados, setCompletados] = useState<{ [id: string]: boolean }>({});
 
   useEffect(() => {
-    if (status === "authenticated" && (session?.user as any)?.role !== "admin") {
-      router.replace("/");
+    if (!user || !isAdmin) {
+      router.replace('/');
     }
-  }, [status, session, router]);
+  }, [user, isAdmin, router]);
 
-  // Cargar cursos dinámicamente desde los JSON
   useEffect(() => {
     async function fetchCursos() {
       try {
-        // Obtener la lista de archivos JSON en /public/cursos-data/
-        const response = await fetch("/api/cursos-list");
-        const files: string[] = await response.json();
-        // Leer cada archivo JSON
-        const cursosData = await Promise.all(
-          files.map(async (file) => {
-            const res = await fetch(`/cursos-data/${file}`);
-            return await res.json();
-          })
-        );
-        setCursos(cursosData);
+        const res = await fetch('/api/admin/cursos');
+        const data = await res.json();
+        if (data.ok) {
+          setCursos(data.cursos);
+        } else {
+          setCursos([]);
+        }
       } catch (error) {
+        setCursos([]);
         console.error("Error cargando cursos:", error);
       }
     }
     fetchCursos();
   }, []);
 
-  if (status === "loading") return <div>Cargando...</div>;
-  if (status === "unauthenticated") return <div>No autorizado</div>;
+  useEffect(() => {
+    if (!user) return;
+    getCursosUsuario(user.uid, 'completados').then((cursos) => {
+      const map: { [id: string]: boolean } = {};
+      cursos.forEach((c: any) => { map[c.id] = true; });
+      setCompletados(map);
+    });
+  }, [user]);
 
-  // Filtrado avanzado por nombre, descripción, instructor, etc.
-  const cursosFiltrados = cursos.filter((curso) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      curso.nombre.toLowerCase().includes(term) ||
-      (curso.descripcion && curso.descripcion.toLowerCase().includes(term)) ||
-      (curso.nivel && curso.nivel.toLowerCase().includes(term)) ||
-      (curso.duracion && curso.duracion.toLowerCase().includes(term))
-    );
-  });
+  if (loading) return <div>Cargando...</div>;
+  if (!user || !isAdmin) return <div>No autorizado</div>;
 
-  const handleEliminarCurso = (id: number) => {
-    setCursos(cursos.filter((curso) => curso.id !== id));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const uploadFile = async (file: File, path: string): Promise<string> => {
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
+  };
+
+  const handleCrearCurso = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let videoUrl = '';
+      let pdfUrl = '';
+      let imageUrl = '';
+
+      if (videoFile) {
+        videoUrl = await uploadFile(videoFile, `cursos/videos/${Date.now()}_${videoFile.name}`);
+      }
+      if (pdfFile) {
+        pdfUrl = await uploadFile(pdfFile, `cursos/pdfs/${Date.now()}_${pdfFile.name}`);
+      }
+      if (imageFile) {
+        imageUrl = await uploadFile(imageFile, `cursos/images/${Date.now()}_${imageFile.name}`);
+      }
+
+      const cursoData = {
+        ...formData,
+        videoUrl,
+        pdfUrl,
+        imagen: imageUrl,
+        fechaCreacion: new Date().toISOString(),
+        instructor: user.email,
+        status: 'Publicado',
+        students: 0
+      };
+
+      const docRef = await addDoc(collection(db, 'cursos'), cursoData);
+      setCursos([...cursos, { ...cursoData, id: docRef.id }]);
+      setShowModal(false);
+      setFormData({
+        nombre: '',
+        descripcion: '',
+        nivel: '',
+        duracion: '',
+      });
+      setVideoFile(null);
+      setPdfFile(null);
+      setImageFile(null);
+    } catch (error) {
+      console.error("Error creando curso:", error);
+    }
+  };
+
+  const handleEliminarCurso = async (id: string) => {
+    try {
+      const res = await fetch('/api/admin/cursos/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCursos(cursos.filter((curso) => curso.id !== id));
+      } else {
+        console.error("Error eliminando curso:", data.error);
+      }
+    } catch (error) {
+      console.error("Error eliminando curso:", error);
+    }
+  };
+
+  const handleToggleComplete = async (id: string, completed: boolean) => {
+    if (!user) return;
+    if (completed) {
+      const curso = cursos.find(c => c.id === id);
+      if (curso) {
+        await agregarCursoUsuario(user.uid, 'completados', curso);
+        setCompletados(prev => ({ ...prev, [id]: true }));
+      }
+    } else {
+      await quitarCursoUsuario(user.uid, 'completados', id);
+      setCompletados(prev => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+    }
   };
 
   return (
@@ -96,91 +195,101 @@ export default function CursosAdminPage() {
         />
       </div>
       <CursosTable
-        cursos={cursosFiltrados}
+        cursos={cursos.filter(curso =>
+          (curso.nombre || curso.titulo || "").toLowerCase().includes(searchTerm.toLowerCase())
+        )}
         columns={[
           { key: "nombre", label: "Curso" },
           { key: "descripcion", label: "Descripción" },
           { key: "nivel", label: "Nivel" },
           { key: "duracion", label: "Duración" },
-          { key: "materiales", label: "Materiales" },
-          { key: "imagen", label: "Imagen" },
+          { key: "instructor", label: "Instructor" },
+          { key: "status", label: "Estado" },
         ]}
         onDelete={handleEliminarCurso}
+        onToggleComplete={handleToggleComplete}
+        completados={completados}
       />
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Nuevo curso</h2>
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                const form = e.target as HTMLFormElement;
-                const title = (form.elements.namedItem("title") as HTMLInputElement).value;
-                const category = (form.elements.namedItem("category") as HTMLInputElement).value;
-                const instructor = (form.elements.namedItem("instructor") as HTMLInputElement).value;
-                const status = (form.elements.namedItem("status") as HTMLInputElement).value;
-                let videoUrl = videoFile ? URL.createObjectURL(videoFile) : undefined;
-                let pdfUrl = pdfFile ? URL.createObjectURL(pdfFile) : undefined;
-                let imageUrl = imageFile ? URL.createObjectURL(imageFile) : undefined;
-                setCursos([
-                  ...cursos,
-                  {
-                    id: cursos.length + 1,
-                    nombre: title,
-                    descripcion: category,
-                    nivel: instructor,
-                    duracion: status,
-                    requisitos: [],
-                    temario: [],
-                    materiales: [],
-                    modulos: [],
-                    comentarios: [],
-                    imagen: imageUrl,
-                  },
-                ]);
-                setShowModal(false);
-                setVideoFile(null);
-                setPdfFile(null);
-                setImageFile(null);
-              }}
-            >
-              <div className="mb-2">
+            <form onSubmit={handleCrearCurso} className="space-y-4">
+              <div>
                 <label className="block text-sm font-medium mb-1">Nombre del curso</label>
-                <input name="title" className="border rounded w-full p-2" required />
+                <input
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={handleInputChange}
+                  className="border rounded w-full p-2"
+                  required
+                />
               </div>
-              <div className="mb-2">
+              <div>
                 <label className="block text-sm font-medium mb-1">Descripción</label>
-                <input name="category" className="border rounded w-full p-2" required />
+                <textarea
+                  name="descripcion"
+                  value={formData.descripcion}
+                  onChange={handleInputChange}
+                  className="border rounded w-full p-2"
+                  required
+                />
               </div>
-              <div className="mb-2">
+              <div>
                 <label className="block text-sm font-medium mb-1">Nivel</label>
-                <input name="instructor" className="border rounded w-full p-2" required />
+                <input
+                  name="nivel"
+                  value={formData.nivel}
+                  onChange={handleInputChange}
+                  className="border rounded w-full p-2"
+                  required
+                />
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Estado</label>
-                <select name="status" className="border rounded w-full p-2" required>
-                  <option value="Publicado">Publicado</option>
-                  <option value="Pendiente">Pendiente</option>
-                  <option value="Borrador">Borrador</option>
-                </select>
+              <div>
+                <label className="block text-sm font-medium mb-1">Duración</label>
+                <input
+                  name="duracion"
+                  value={formData.duracion}
+                  onChange={handleInputChange}
+                  className="border rounded w-full p-2"
+                  required
+                />
               </div>
-              <div className="mb-2">
-                <label className="block text-sm font-medium mb-1">Video (opcional)</label>
-                <input type="file" accept="video/*" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
+              <div>
+                <label className="block text-sm font-medium mb-1">Video del curso</label>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={e => setVideoFile(e.target.files?.[0] || null)}
+                  className="w-full"
+                />
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">PDF (opcional)</label>
-                <input type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} />
+              <div>
+                <label className="block text-sm font-medium mb-1">Material PDF</label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={e => setPdfFile(e.target.files?.[0] || null)}
+                  className="w-full"
+                />
               </div>
-              <div className="mb-2">
-                <label className="block text-sm font-medium mb-1">Imagen (opcional)</label>
-                <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} />
+              <div>
+                <label className="block text-sm font-medium mb-1">Imagen del curso</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setImageFile(e.target.files?.[0] || null)}
+                  className="w-full"
+                />
               </div>
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => { setShowModal(false); setVideoFile(null); setPdfFile(null); setImageFile(null); }}>
+                <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">Guardar</Button>
+                <Button type="submit" className="flex items-center gap-2">
+                  <Upload size={16} />
+                  Subir Curso
+                </Button>
               </div>
             </form>
           </div>

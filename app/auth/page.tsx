@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
-import { signIn } from "next-auth/react"
+import { useAuth } from "@/lib/AuthContext"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,10 +15,35 @@ export default function AuthPage() {
   const searchParams = useSearchParams()
   const defaultTab = searchParams.get("register") ? "registro" : "login"
   const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const router = useRouter();
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [nombre, setNombre] = useState("")
+  const [apellido, setApellido] = useState("")
+  const router = useRouter()
+  const { signIn, signUp } = useAuth()
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    try {
+      await signIn(email, password)
+      router.push("/")
+    } catch (error) {
+      setError("Credenciales incorrectas")
+    }
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    try {
+      await signUp(email, password)
+      router.push("/")
+    } catch (error) {
+      setError("Error al crear la cuenta")
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -39,7 +64,7 @@ export default function AuthPage() {
               <TabsTrigger value="registro">Registrarse</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
-              <div className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-6">
                 <div className="text-center mb-6">
                   <h1 className="text-2xl font-bold">Bienvenido de nuevo</h1>
                   <p className="text-gray-600 mt-1">Inicia sesión para continuar aprendiendo</p>
@@ -53,6 +78,7 @@ export default function AuthPage() {
                       placeholder="tu@email.com"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -69,6 +95,7 @@ export default function AuthPage() {
                         placeholder="••••••••"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
+                        required
                       />
                       <button
                         type="button"
@@ -79,47 +106,15 @@ export default function AuthPage() {
                       </button>
                     </div>
                   </div>
-                  <Button
-                    className="w-full"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      setError("");
-                      const res = await signIn("credentials", {
-                        redirect: false,
-                        email,
-                        password,
-                      });
-                      if (res?.error) {
-                        setError("Credenciales incorrectas");
-                      } else {
-                        router.push("/");
-                      }
-                    }}
-                  >
+                  <Button type="submit" className="w-full">
                     Iniciar sesión
                   </Button>
                   {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
                 </div>
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">O continúa con</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button className="w-full">
-                    Google
-                  </Button>
-                  <Button className="w-full">
-                    Microsoft
-                  </Button>
-                </div>
-              </div>
+              </form>
             </TabsContent>
             <TabsContent value="registro">
-              <div className="space-y-6">
+              <form onSubmit={handleRegister} className="space-y-6">
                 <div className="text-center mb-6">
                   <h1 className="text-2xl font-bold">Crea tu cuenta</h1>
                   <p className="text-gray-600 mt-1">Únete a nuestra comunidad de aprendizaje</p>
@@ -128,21 +123,47 @@ export default function AuthPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="first-name">Nombre</Label>
-                      <Input id="first-name" placeholder="Juan" />
+                      <Input 
+                        id="first-name" 
+                        placeholder="Juan" 
+                        value={nombre}
+                        onChange={e => setNombre(e.target.value)}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="last-name">Apellido</Label>
-                      <Input id="last-name" placeholder="Pérez" />
+                      <Input 
+                        id="last-name" 
+                        placeholder="Pérez" 
+                        value={apellido}
+                        onChange={e => setApellido(e.target.value)}
+                        required
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email-register">Correo electrónico</Label>
-                    <Input id="email-register" type="email" placeholder="tu@email.com" />
+                    <Input 
+                      id="email-register" 
+                      type="email" 
+                      placeholder="tu@email.com" 
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password-register">Contraseña</Label>
                     <div className="relative">
-                      <Input id="password-register" type={showPassword ? "text" : "password"} placeholder="••••••••" />
+                      <Input 
+                        id="password-register" 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        required
+                      />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
@@ -160,37 +181,23 @@ export default function AuthPage() {
                       type="checkbox"
                       id="terms"
                       className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 mt-1"
+                      required
                     />
                     <Label htmlFor="terms" className="font-normal text-sm">
                       Acepto los{" "}
-                      <Link href="#" className="text-emerald-600 hover:underline">
+                      <Link href="/terminos-privacidad" className="text-emerald-600 hover:underline">
                         Términos de servicio
                       </Link>{" "}
                       y la{" "}
-                      <Link href="#" className="text-emerald-600 hover:underline">
+                      <Link href="/terminos-privacidad" className="text-emerald-600 hover:underline">
                         Política de privacidad
                       </Link>
                     </Label>
                   </div>
-                  <Button className="w-full">Crear cuenta</Button>
+                  <Button type="submit" className="w-full">Crear cuenta</Button>
+                  {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
                 </div>
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">O regístrate con</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button className="w-full">
-                    Google
-                  </Button>
-                  <Button className="w-full">
-                    Microsoft
-                  </Button>
-                </div>
-              </div>
+              </form>
             </TabsContent>
           </Tabs>
         </div>

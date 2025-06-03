@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { User, BookOpen, Bookmark, Settings, LogOut, ChevronRight, Heart } from "lucide-react"
 import { useSession } from "next-auth/react"
+import { useAuth } from '@/lib/AuthContext'
+import { getCursosUsuario, agregarCursoUsuario, quitarCursoUsuario, actualizarProgresoCurso } from '@/lib/cursosUsuario'
+import { updateProfile } from 'firebase/auth'
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,17 +21,17 @@ const IDS_FAVORITOS = [1, 2];
 
 export default function PerfilPage() {
   const { data: session } = useSession();
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("en-progreso")
   const [cursos, setCursos] = useState<any[]>([]);
-  const [nombre, setNombre] = useState(session?.user?.name || "Juan Pérez");
-  const [correo, setCorreo] = useState(session?.user?.email || "juan@ejemplo.com");
-
-  useEffect(() => {
-    if (session?.user) {
-      setNombre(session.user.name || "");
-      setCorreo(session.user.email || "");
-    }
-  }, [session]);
+  const [cursosEnProgreso, setCursosEnProgreso] = useState<any[]>([]);
+  const [cursosCompletados, setCursosCompletados] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [recomendados, setRecomendados] = useState<any[]>([]);
+  const nombre = user?.displayName || user?.email?.split('@')[0] || "Usuario";
+  const correo = user?.email || "";
+  const [nombreEdit, setNombreEdit] = useState(nombre);
+  const [correoEdit, setCorreoEdit] = useState(correo);
 
   // Cargar cursos dinámicamente desde los JSON
   useEffect(() => {
@@ -50,29 +53,71 @@ export default function PerfilPage() {
     fetchCursos();
   }, []);
 
-  // Simular progreso y favoritos (esto puede venir de backend o localStorage)
-  const cursosEnProgreso = cursos.filter(c => IDS_EN_PROGRESO.includes(c.id)).map((c, i) => ({
-    ...c,
-    progress: [35, 68][i] || 20 // Simulación de progreso
-  }));
-  const cursosCompletados = cursos.filter(c => IDS_COMPLETADOS.includes(c.id)).map(c => ({
-    ...c,
-    completedDate: "15 de marzo, 2025"
-  }));
-  const favorites = cursos.filter(c => IDS_FAVORITOS.includes(c.id)).map(c => ({
-    ...c,
-    savedDate: "15 de abril, 2024"
-  }));
-  const recomendados = cursos.filter(c => !IDS_EN_PROGRESO.includes(c.id) && !IDS_COMPLETADOS.includes(c.id));
+  // Cargar cursos del usuario desde la nueva API interna
+  useEffect(() => {
+    if (!user) return;
+    const cargarCursos = async () => {
+      const res = await fetch('/api/perfil/cursos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCursosEnProgreso(data.enProgreso);
+        setCursosCompletados(data.completados);
+        setFavorites(data.favoritos);
+      } else {
+        setCursosEnProgreso([]);
+        setCursosCompletados([]);
+        setFavorites([]);
+      }
+      // Recomendados: todos los cursos menos los que ya están en progreso o completados
+      const response = await fetch('/api/cursos-list');
+      const files = await response.json();
+      const todos = await Promise.all(files.map(async (file: string) => {
+        const res = await fetch(`/cursos-data/${file}`);
+        return await res.json();
+      }));
+      const ids = new Set([...data.enProgreso, ...data.completados].map((c: any) => c.id));
+      setRecomendados(todos.filter((c: any) => !ids.has(c.id)));
+    };
+    cargarCursos();
+  }, [user]);
 
-  const removeFavorite = (id: number) => {
-    // Simulación: solo quita del array local
-    // En el futuro, actualizar en backend/localStorage
+  // Marcar como completado
+  const marcarComoCompletado = async (cursoId: string) => {
+    if (!user) return;
+    const curso = cursosEnProgreso.find(c => c.id === cursoId);
+    if (curso) {
+      await quitarCursoUsuario(user.uid, 'enProgreso', cursoId);
+      await agregarCursoUsuario(user.uid, 'completados', { ...curso, completedDate: new Date().toLocaleDateString() });
+      setCursosEnProgreso(cursosEnProgreso.filter(c => c.id !== cursoId));
+      setCursosCompletados([...cursosCompletados, { ...curso, completedDate: new Date().toLocaleDateString() }]);
+    }
   };
 
-  const marcarComoCompletado = (cursoId: number) => {
-    // Simulación: solo mueve entre arrays locales
-    // En el futuro, actualizar en backend/localStorage
+  // Quitar favorito
+  const removeFavorite = async (cursoId: string) => {
+    if (!user) return;
+    await quitarCursoUsuario(user.uid, 'favoritos', cursoId);
+    setFavorites(favorites.filter(c => c.id !== cursoId));
+  };
+
+  // Actualizar progreso
+  const actualizarProgreso = async (cursoId: string, progreso: number) => {
+    if (!user) return;
+    await actualizarProgresoCurso(user.uid, cursoId, progreso);
+    setCursosEnProgreso(cursosEnProgreso.map(c => c.id === cursoId ? { ...c, progreso } : c));
+  };
+
+  // Guardar cambios de perfil
+  const guardarPerfil = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    await updateProfile(user, { displayName: nombreEdit });
+    // No se puede cambiar el email desde aquí por seguridad de Firebase
+    window.location.reload();
   };
 
   return (
@@ -125,6 +170,7 @@ export default function PerfilPage() {
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
+                  onClick={logout}
                 >
                   <LogOut className="mr-2 h-5 w-5" />
                   <span>Cerrar sesión</span>
@@ -275,13 +321,13 @@ export default function PerfilPage() {
                 <TabsContent value="configuracion">
                   <div className="max-w-md mx-auto mt-8">
                     <h2 className="text-xl font-bold mb-4">Editar perfil</h2>
-                    <form className="space-y-6 bg-gray-50 p-6 rounded-lg border" onSubmit={e => {e.preventDefault();}}>
+                    <form className="space-y-6 bg-gray-50 p-6 rounded-lg border" onSubmit={guardarPerfil}>
                       <div>
                         <label className="block text-sm font-medium mb-1">Nombre</label>
                         <input
                           className="border rounded w-full p-2"
-                          value={nombre}
-                          onChange={e => setNombre(e.target.value)}
+                          value={nombreEdit}
+                          onChange={e => setNombreEdit(e.target.value)}
                           required
                         />
                       </div>
@@ -290,8 +336,8 @@ export default function PerfilPage() {
                         <input
                           className="border rounded w-full p-2"
                           type="email"
-                          value={correo}
-                          onChange={e => setCorreo(e.target.value)}
+                          value={correoEdit}
+                          onChange={e => setCorreoEdit(e.target.value)}
                           required
                         />
                       </div>
@@ -301,33 +347,6 @@ export default function PerfilPage() {
                 </TabsContent>
               </Tabs>
             </div>
-
-            {activeTab === "en-progreso" && (
-              <div className="bg-white rounded-lg border p-6">
-                <h2 className="text-xl font-bold mb-6">Recomendados para ti</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {recomendados.map((curso) => (
-                    <Card key={curso.id} className="overflow-hidden">
-                      <img
-                        src={curso.imagen || "/placeholder.svg"}
-                        alt={curso.nombre}
-                        className="w-full h-40 object-cover"
-                      />
-                      <CardContent className="p-4">
-                        <div className="text-sm text-emerald-600 mb-1">{curso.nivel}</div>
-                        <h3 className="text-lg font-semibold mb-3">{curso.nombre}</h3>
-                        <Button variant="outline" size="sm" className="w-full" asChild>
-                          <Link href={`/cursos/${curso.id}`}>
-                            Ver detalles
-                            <ChevronRight className="ml-1 h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

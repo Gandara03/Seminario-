@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from "./providers";
 import { Footer } from "@/components/Footer";
+import { AuthProvider } from '@/lib/AuthContext';
 
 export const metadata: Metadata = {
   title: 'EduPlus - Plataforma de Educación Online',
@@ -17,12 +18,14 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="min-h-screen flex flex-col">
-        <Providers>
-          <main className="flex-grow">
-            {children}
-          </main>
-          <Footer />
-        </Providers>
+        <AuthProvider>
+          <Providers>
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
+          </Providers>
+        </AuthProvider>
       </body>
     </html>
   )

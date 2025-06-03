@@ -1,6 +1,7 @@
 import React from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface Material {
   nombre: string;
@@ -8,7 +9,7 @@ interface Material {
 }
 
 interface Curso {
-  id: number;
+  id: string;
   nombre: string;
   categoria?: string;
   descripcion?: string;
@@ -31,10 +32,12 @@ interface Column {
 interface CursosTableProps {
   cursos: Curso[];
   columns: Column[];
-  onDelete?: (id: number) => void;
+  onDelete?: (id: string) => void;
+  onToggleComplete?: (id: string, completed: boolean) => void;
+  completados?: { [id: string]: boolean };
 }
 
-export default function CursosTable({ cursos, columns, onDelete }: CursosTableProps) {
+export default function CursosTable({ cursos, columns, onDelete, onToggleComplete, completados }: CursosTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -42,6 +45,7 @@ export default function CursosTable({ cursos, columns, onDelete }: CursosTablePr
           {columns.map((col) => (
             <TableHead key={col.key}>{col.label}</TableHead>
           ))}
+          {onToggleComplete && <TableHead>Completado</TableHead>}
           {onDelete && <TableHead className="text-right">Acciones</TableHead>}
         </TableRow>
       </TableHeader>
@@ -95,10 +99,22 @@ export default function CursosTable({ cursos, columns, onDelete }: CursosTablePr
                   return <TableCell key={col.key}>{(curso as any)[col.key] ?? <span className="text-gray-400">-</span>}</TableCell>;
               }
             })}
+            {onToggleComplete && (
+              <TableCell>
+                <input
+                  type="checkbox"
+                  checked={!!(completados && completados[curso.id])}
+                  onChange={e => onToggleComplete && onToggleComplete(curso.id, e.target.checked)}
+                />
+              </TableCell>
+            )}
             {onDelete && (
               <TableCell className="text-right">
                 <Button size="sm" variant="destructive" onClick={() => onDelete(curso.id)}>
                   Eliminar
+                </Button>
+                <Button asChild variant="outline" size="sm" className="ml-2">
+                  <Link href={`/admin/cursos/editar/${curso.id}`}>Editar</Link>
                 </Button>
               </TableCell>
             )}

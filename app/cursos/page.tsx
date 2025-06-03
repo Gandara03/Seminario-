@@ -3,20 +3,57 @@
 import Link from "next/link"
 import { Search, Heart } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/AuthContext"
+import { cursosService } from "@/lib/cursos"
+import { useFavoritosCursos } from '@/lib/cursosUsuario'
+import { collection } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+export interface Curso {
+  id?: string;
+  nombre?: string;
+  titulo?: string;
+  descripcion?: string;
+  duracion?: string;
+  nivel?: string;
+  precio?: number;
+  imagen?: string;
+  instructor?: string;
+  categoria?: string;
+  fechaCreacion?: Date;
+  objetivos?: string[];
+  requisitos?: string[];
+  temario?: string[];
+  materiales?: { nombre: string; url: string }[];
+  modulos?: {
+    titulo: string;
+    contenido: string;
+    videoUrl: string;
+    materiales?: any[];
+  }[];
+  comentarios?: {
+    usuario: string;
+    fecha: string;
+    calificacion: number;
+    comentario: string;
+  }[];
+}
+
 export default function CursosPage() {
-  const [cursos, setCursos] = useState<any[]>([]);
+  const [cursos, setCursos] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("Todos");
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const cursosPorPagina = 6;
+  const { user, isAdmin, logout } = useAuth();
+  const { favoritos, addFavorito, removeFavorito, isFavorito } = useFavoritosCursos();
 
   const categorias = [
     "Todos",
@@ -26,20 +63,24 @@ export default function CursosPage() {
   useEffect(() => {
     async function fetchCursos() {
       setLoading(true);
-      // Obtener la lista de archivos JSON (hardcodeado porque no hay API para listar archivos en public)
-      const ids = [1,2,3,4,5,6];
-      const cursosData = await Promise.all(
-        ids.map(async (id) => {
-          const res = await fetch(`/cursos-data/curso-${id}.json`);
-          if (!res.ok) return null;
-          const data = await res.json();
-          // Agregar campo 'categoria' para los filtros
-          data.categoria = data.temario?.[0] || "General";
-          return data;
-        })
-      );
-      setCursos(cursosData.filter(Boolean));
-      setLoading(false);
+      try {
+        const res = await fetch('/api/cursos');
+        const data = await res.json();
+        const cursosData = data.cursos || [];
+        // Eliminar duplicados basados en el título
+        const cursosUnicos = cursosData.reduce((acc: Curso[], curso: Curso) => {
+          const titulo = curso.titulo || curso.nombre;
+          if (!acc.find((c: Curso) => (c.titulo || c.nombre) === titulo)) {
+            acc.push(curso);
+          }
+          return acc;
+        }, [] as Curso[]);
+        setCursos(cursosUnicos);
+      } catch (error) {
+        console.error("Error al cargar los cursos:", error);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchCursos();
   }, []);
@@ -47,7 +88,8 @@ export default function CursosPage() {
   // Lógica de filtrado solo por búsqueda y categoría
   let cursosFiltrados = cursos.filter(curso => {
     const coincideCategoria = categoriaSeleccionada === "Todos" || curso.categoria === categoriaSeleccionada;
-    const coincideNombre = curso.nombre.toLowerCase().includes(busqueda.toLowerCase());
+    const titulo = curso.titulo || curso.nombre || "";
+    const coincideNombre = titulo.toLowerCase().includes(busqueda.toLowerCase());
     return coincideCategoria && coincideNombre;
   });
 
@@ -62,12 +104,12 @@ export default function CursosPage() {
     }
   };
 
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev =>
-      prev.includes(id)
-        ? prev.filter(favId => favId !== id)
-        : [...prev, id]
-    );
+  const handleToggleFavorite = (curso: Curso) => {
+    if (isFavorito(curso.id!)) {
+      removeFavorito(curso.id!);
+    } else {
+      addFavorito(curso);
+    }
   };
 
   return (
@@ -79,12 +121,30 @@ export default function CursosPage() {
             EduPlus
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/auth" className="text-sm font-medium text-gray-600 hover:text-emerald-600">
-              Iniciar sesión
-            </Link>
-            <Button asChild>
-              <Link href="/auth?register=true">Registrarse</Link>
-            </Button>
+            {user ? (
+              <>
+                {isAdmin && (
+                  <Button asChild>
+                    <Link href="/admin">Panel de administrador</Link>
+                  </Button>
+                )}
+                <Button asChild>
+                  <Link href="/perfil">Mi perfil</Link>
+                </Button>
+                <Button onClick={logout}>
+                  Cerrar sesión
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth" className="text-sm font-medium text-gray-600 hover:text-emerald-600">
+                  Iniciar sesión
+                </Link>
+                <Button asChild>
+                  <Link href="/auth?register=true">Registrarse</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -127,7 +187,7 @@ export default function CursosPage() {
               variant={cat === categoriaSeleccionada ? "default" : "outline"}
               size="sm"
               className={cat === categoriaSeleccionada ? "" : "text-gray-600"}
-              onClick={() => setCategoriaSeleccionada(cat)}
+              onClick={() => setCategoriaSeleccionada(cat || "Todos")}
             >
               {cat}
             </Button>
@@ -145,27 +205,28 @@ export default function CursosPage() {
               <Card key={curso.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <div className="relative">
                   <img
-                    src={curso.imagen?.startsWith('/') ? curso.imagen : `/cursos/${curso.imagen}`}
-                    alt={curso.nombre}
+                    src={curso.imagen || "/cursos/default.png"}
+                    alt={curso.nombre || curso.titulo || ""}
+                    onError={e => { e.currentTarget.src = "/cursos/default.png"; }}
                     className="w-full h-48 object-cover"
                   />
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`absolute top-2 right-2 rounded-full ${favorites.includes(curso.id) ? 'text-red-500' : 'text-white'}`}
-                    onClick={() => toggleFavorite(curso.id)}
+                    className={`absolute top-2 right-2 rounded-full ${isFavorito(curso.id!) ? 'text-red-500' : 'text-white'}`}
+                    onClick={() => handleToggleFavorite(curso)}
                   >
-                    <Heart className={`h-6 w-6 ${favorites.includes(curso.id) ? 'fill-current' : ''}`} />
+                    <Heart className={`h-6 w-6 ${isFavorito(curso.id!) ? 'fill-current' : ''}`} />
                   </Button>
                 </div>
                 <CardContent className="p-6">
                   <div className="text-sm text-emerald-600 mb-2">{curso.nivel}</div>
-                  <h3 className="text-lg font-semibold mb-2">{curso.nombre}</h3>
+                  <h3 className="text-lg font-semibold mb-2">{curso.titulo || curso.nombre || "Sin título"}</h3>
                   <div className="text-xs text-gray-500 mb-1 font-semibold">Duración: {curso.duracion}</div>
                   <p className="text-gray-600 text-sm mb-4">{curso.descripcion}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <span className="text-xs text-gray-500 ml-1">{curso.objetivos?.length || 0} objetivos</span>
+                      <span className="text-xs text-gray-500 ml-1">Instructor: {curso.instructor}</span>
                     </div>
                     <Link href={`/cursos/${curso.id}`} className="text-sm font-medium text-emerald-600 hover:underline">
                       Ver curso
@@ -177,7 +238,7 @@ export default function CursosPage() {
           )}
         </div>
 
-        {/* Paginación real */}
+        {/* Paginación */}
         {totalPaginas > 1 && (
           <div className="flex justify-center mt-12">
             <div className="flex gap-2">

@@ -15,17 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CursosTable from "@/components/CursosTable";
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/lib/AuthContext';
 
 interface Curso {
-  id: number;
-  title: string;
-  category: string;
-  instructor: string;
-  status: string;
-  students: number;
-  videoUrl?: string;
-  pdfUrl?: string;
-  imagen?: string;
+  id: string;
+  nombre: string;
+  descripcion: string;
+  [key: string]: any;
 }
 
 export default function ReportesAdminPage() {
@@ -33,34 +31,31 @@ export default function ReportesAdminPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [cursos, setCursos] = useState<Curso[]>([]);
+  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const { user, isAdmin, loading } = useAuth();
 
   useEffect(() => {
-    if (status === "authenticated" && (session?.user as any)?.role !== "admin") {
-      router.replace("/");
+    if (!user || !isAdmin) {
+      router.replace('/');
     }
-  }, [status, session, router]);
+  }, [user, isAdmin, router]);
 
   useEffect(() => {
-    async function fetchCursos() {
+    async function fetchData() {
       try {
-        const response = await fetch("/api/cursos-list");
-        const files = await response.json();
-        const cursosData = await Promise.all(
-          files.map(async (file) => {
-            const res = await fetch(`/cursos-data/${file}`);
-            return await res.json();
-          })
-        );
-        setCursos(cursosData);
+        const cursosSnap = await getDocs(collection(db, 'cursos'));
+        setCursos(cursosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const usuariosSnap = await getDocs(collection(db, 'users'));
+        setUsuarios(usuariosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (error) {
-        console.error("Error cargando cursos:", error);
+        console.error("Error cargando datos:", error);
       }
     }
-    fetchCursos();
+    fetchData();
   }, []);
 
-  if (status === "loading") return <div>Cargando...</div>;
-  if (status === "unauthenticated") return <div>No autorizado</div>;
+  if (loading) return <div>Cargando...</div>;
+  if (!user || !isAdmin) return <div>No autorizado</div>;
 
   // Filtrado de cursos por búsqueda
   const cursosFiltrados = cursos.filter((curso) =>
@@ -68,7 +63,7 @@ export default function ReportesAdminPage() {
   );
 
   // Eliminar curso
-  const handleEliminarCurso = (id: number) => {
+  const handleEliminarCurso = (id: string) => {
     setCursos(cursos.filter((curso) => curso.id !== id));
   };
 
@@ -93,7 +88,7 @@ export default function ReportesAdminPage() {
             <CardTitle className="text-sm font-medium text-gray-500">Usuarios activos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">2,845</div>
+            <div className="text-3xl font-bold">{usuarios.length}</div>
             <p className="text-xs text-emerald-600 mt-1">+8% desde el mes pasado</p>
           </CardContent>
         </Card>

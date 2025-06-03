@@ -12,6 +12,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
+import { useAuth } from '@/lib/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -22,11 +24,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 }
 
 function AdminShell({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { user, isAdmin, loading } = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
 
-  if (status === "loading") return <div>Cargando...</div>;
-  if (status === "unauthenticated") return <div>No autorizado</div>;
+  if (loading) return <div>Cargando...</div>;
+  if (!user || !isAdmin) {
+    if (typeof window !== 'undefined') router.replace('/');
+    return <div>No autorizado</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -38,15 +44,15 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-gray-600">
-              {(session?.user as any)?.name}
+              {user.displayName || user.email}
             </span>
             <Avatar>
-              <AvatarFallback>AD</AvatarFallback>
+              <AvatarFallback>{(user.displayName || user.email || "U").slice(0,2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <Button
               variant="ghost"
               className="text-red-500 hover:text-red-600 hover:bg-red-50"
-              onClick={() => signOut({ callbackUrl: "/auth" })}
+              onClick={() => router.replace('/auth')}
             >
               <LogOut className="mr-2 h-5 w-5" />
               <span>Cerrar sesión</span>
@@ -76,18 +82,6 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                 <Link href="/admin/usuarios" className="flex items-center">
                   <Users className="mr-2 h-5 w-5" />
                   <span>Usuarios</span>
-                </Link>
-              </Button>
-              <Button variant={pathname === "/admin/reportes" ? "secondary" : "ghost"} className="w-full justify-start" asChild>
-                <Link href="/admin/reportes" className="flex items-center">
-                  <FileText className="mr-2 h-5 w-5" />
-                  <span>Reportes</span>
-                </Link>
-              </Button>
-              <Button variant={pathname === "/admin/configuracion" ? "secondary" : "ghost"} className="w-full justify-start" asChild>
-                <Link href="/admin/configuracion" className="flex items-center">
-                  <Settings className="mr-2 h-5 w-5" />
-                  <span>Configuración</span>
                 </Link>
               </Button>
             </div>
