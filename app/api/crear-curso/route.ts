@@ -4,10 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 import * as admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 
+const serviceAccount = require('../../../../serviceAccountKey.json');
+
 // Inicializar firebase-admin solo si no está inicializado
 if (!getApps().length) {
   admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
+    credential: admin.credential.cert(serviceAccount),
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'eduplus-2cadd.appspot.com',
   });
 }
