@@ -37,11 +37,19 @@ export default function AuthPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    // Validar contraseña
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError("La contraseña debe tener al menos 8 caracteres, una letra mayúscula y un número")
+      return
+    }
+
     try {
-      await signUp(email, password)
+      await signUp(email, password, nombre, apellido)
       router.push("/")
-    } catch (error) {
-      setError("Error al crear la cuenta")
+    } catch (error: any) {
+      setError(error.message || "Error al crear la cuenta")
     }
   }
 

@@ -7,7 +7,10 @@ import {
   deleteDoc,
   query,
   where,
-  updateDoc
+  updateDoc,
+  addDoc,
+  getDoc,
+  arrayUnion
 } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
@@ -78,4 +81,66 @@ export function useFavoritosCursos() {
   const isFavorito = (cursoId: string) => favoritos.includes(cursoId);
 
   return { favoritos, loading, addFavorito, removeFavorito, isFavorito };
-} 
+}
+
+// Función para agregar un comentario a un curso
+export const agregarComentarioCurso = async (cursoId: string, comentario: any) => {
+  try {
+    const cursoRef = doc(db, 'cursos', cursoId);
+    const cursoDoc = await getDoc(cursoRef);
+    
+    if (!cursoDoc.exists()) {
+      console.error('El curso no existe');
+      return false;
+    }
+
+    const cursoData = cursoDoc.data();
+    const comentariosActuales = cursoData.comentarios || [];
+    
+    // Verificar si el comentario ya existe (por timestamp y userId)
+    const comentarioDuplicado = comentariosActuales.some(
+      (c: any) => c.timestamp === comentario.timestamp && c.userId === comentario.userId
+    );
+
+    if (comentarioDuplicado) {
+      console.error('El comentario ya existe');
+      return false;
+    }
+
+    // Agregar el nuevo comentario al inicio del array
+    const nuevosComentarios = [comentario, ...comentariosActuales];
+    
+    await updateDoc(cursoRef, {
+      comentarios: nuevosComentarios
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error al agregar comentario:', error);
+    return false;
+  }
+};
+
+// Función para obtener los comentarios de un curso
+export const getComentariosCurso = async (cursoId: string) => {
+  try {
+    const cursoRef = doc(db, 'cursos', cursoId);
+    const cursoDoc = await getDoc(cursoRef);
+    
+    if (!cursoDoc.exists()) {
+      console.error('El curso no existe');
+      return [];
+    }
+
+    const cursoData = cursoDoc.data();
+    const comentarios = cursoData.comentarios || [];
+    
+    // Ordenar comentarios por fecha (más recientes primero)
+    return comentarios.sort((a: any, b: any) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  } catch (error) {
+    console.error('Error al obtener comentarios:', error);
+    return [];
+  }
+}; 

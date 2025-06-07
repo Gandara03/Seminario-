@@ -184,11 +184,10 @@ export default function PerfilPage() {
             <div className="bg-white rounded-lg border p-6 mb-8">
               <h1 className="text-2xl font-bold mb-6">Mis cursos</h1>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="en-progreso">En progreso</TabsTrigger>
                   <TabsTrigger value="completados">Completados</TabsTrigger>
                   <TabsTrigger value="favoritos">Favoritos</TabsTrigger>
-                  <TabsTrigger value="configuracion">Configuración</TabsTrigger>
                 </TabsList>
                 <TabsContent value="en-progreso">
                   <div className="space-y-6">
@@ -316,33 +315,6 @@ export default function PerfilPage() {
                         </div>
                       </Card>
                     ))}
-                  </div>
-                </TabsContent>
-                <TabsContent value="configuracion">
-                  <div className="max-w-md mx-auto mt-8">
-                    <h2 className="text-xl font-bold mb-4">Editar perfil</h2>
-                    <form className="space-y-6 bg-gray-50 p-6 rounded-lg border" onSubmit={guardarPerfil}>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Nombre</label>
-                        <input
-                          className="border rounded w-full p-2"
-                          value={nombreEdit}
-                          onChange={e => setNombreEdit(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Correo electrónico</label>
-                        <input
-                          className="border rounded w-full p-2"
-                          type="email"
-                          value={correoEdit}
-                          onChange={e => setCorreoEdit(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <Button type="submit" className="w-full">Guardar cambios</Button>
-                    </form>
                   </div>
                 </TabsContent>
               </Tabs>

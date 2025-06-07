@@ -46,7 +46,7 @@ export function Footer() {
           <div>
             <h3 className="text-white text-lg font-semibold mb-4">Contacto</h3>
             <ul className="space-y-2 text-sm">
-              <li>Email: contacto@eduplus.com</li>
+              <li>Email: Admin@eduplus.com</li>
               <li>Teléfono: +54 11 1234-5678</li>
               <li>Dirección: Av. Corrientes 1234, CABA</li>
             </ul>

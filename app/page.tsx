@@ -110,90 +110,37 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="py-20 bg-gradient-to-b from-emerald-50 via-white to-white">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent">
-            Aprende a tu ritmo, crece sin límites
-          </h1>
-          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Descubre cientos de cursos impartidos por expertos y desarrolla las habilidades que necesitas para alcanzar
-            tus metas.
-          </p>
-          <div className="flex flex-col gap-4 items-center justify-center max-w-3xl mx-auto">
-            <div className="relative w-full">
-              <Input
-                type="text"
-                placeholder="Buscar cursos..."
-                className="pl-12 pr-4 py-7 rounded-full shadow-sm border-emerald-100 focus:border-emerald-300 focus:ring-emerald-200 transition-all"
-                value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-              />
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-emerald-400" size={20} />
-            </div>
-            <div className="flex flex-wrap gap-3 justify-center w-full">
-              <Select value={nivelSeleccionado} onValueChange={setNivelSeleccionado}>
-                <SelectTrigger className="w-[180px] py-7 rounded-full shadow-sm border-emerald-100 focus:border-emerald-300 focus:ring-emerald-200">
-                  <SelectValue placeholder="Nivel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {niveles.map((nivel) => (
-                    <SelectItem key={nivel} value={nivel}>{nivel}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={ordenSeleccionado} onValueChange={setOrdenSeleccionado}>
-                <SelectTrigger className="w-[180px] py-7 rounded-full shadow-sm border-emerald-100 focus:border-emerald-300 focus:ring-emerald-200">
-                  <SelectValue placeholder="Ordenar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ordenes.map((orden) => (
-                    <SelectItem key={orden.value} value={orden.value}>{orden.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {(busqueda.trim() !== "" || nivelSeleccionado !== "Dificultad" || ordenSeleccionado !== "recientes") && (
-              <div className="flex flex-wrap gap-2 justify-center mt-2">
-                {busqueda.trim() !== "" && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-emerald-100 text-emerald-800">
-                    Búsqueda: {busqueda}
-                    <button
-                      onClick={() => setBusqueda("")}
-                      className="ml-2 hover:text-emerald-600"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                )}
-                {nivelSeleccionado !== "Dificultad" && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-emerald-100 text-emerald-800">
-                    Nivel: {nivelSeleccionado}
-                    <button
-                      onClick={() => setNivelSeleccionado("Dificultad")}
-                      className="ml-2 hover:text-emerald-600"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                )}
-                {ordenSeleccionado !== "recientes" && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-emerald-100 text-emerald-800">
-                    Orden: {ordenes.find(o => o.value === ordenSeleccionado)?.label}
-                    <button
-                      onClick={() => setOrdenSeleccionado("recientes")}
-                      className="ml-2 hover:text-emerald-600"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                )}
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col items-center gap-6 mb-10">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-emerald-700 text-center leading-tight">
+              Aprende a tu ritmo, crece sin límites
+            </h1>
+            <p className="text-lg text-gray-600 text-center max-w-2xl">
+              Descubre cientos de cursos impartidos por expertos y desarrolla las habilidades que necesitas para alcanzar tus metas.
+            </p>
+            <div className="flex flex-col md:flex-row items-center gap-4 w-full max-w-2xl">
+              <div className="flex-1 w-full">
+                <Input
+                  type="text"
+                  placeholder="Buscar cursos..."
+                  value={busqueda}
+                  onChange={e => setBusqueda(e.target.value)}
+                  className="w-full"
+                />
               </div>
-            )}
+              <div className="w-full md:w-auto">
+                <Select value={nivelSeleccionado} onValueChange={setNivelSeleccionado}>
+                  <SelectTrigger className="w-full md:w-40">
+                    <SelectValue placeholder="Dificultad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {niveles.map((nivel) => (
+                      <SelectItem key={nivel} value={nivel}>{nivel}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </div>
       </section>

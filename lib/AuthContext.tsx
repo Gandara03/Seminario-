@@ -6,16 +6,19 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  updateProfile
 } from 'firebase/auth';
 import { auth, isUserAdmin } from './firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, nombre: string, apellido: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -45,8 +48,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signUp = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+  const signUp = async (email: string, password: string, nombre: string, apellido: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Actualizar el perfil del usuario con el nombre completo
+    await updateProfile(userCredential.user, {
+      displayName: `${nombre} ${apellido}`
+    });
+    // Crear documento en Firestore
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      uid: userCredential.user.uid,
+      email,
+      name: `${nombre} ${apellido}`,
+      role: 'user',
+      createdAt: serverTimestamp()
+    });
   };
 
   const logout = async () => {
