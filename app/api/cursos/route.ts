@@ -6,6 +6,7 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
 if (!getApps().length) {
   initializeApp({
     credential: cert(serviceAccount as any),
+    storageBucket: "eduplus-2cadd.appspot.com"
   });
 }
 const db = getFirestore();

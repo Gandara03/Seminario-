@@ -6,6 +6,7 @@ if (!getApps().length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount as any),
+    storageBucket: "eduplus-2cadd.appspot.com"
   });
 }
 const db = admin.firestore();
