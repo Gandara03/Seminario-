@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 
-const serviceAccount = require('../../../../serviceAccountKey.json');
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
 
 // Inicializar firebase-admin solo si no está inicializado
 if (!getApps().length) {

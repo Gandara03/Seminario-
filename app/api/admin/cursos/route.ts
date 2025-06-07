@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 const admin = require('firebase-admin');
 const { getApps } = require('firebase-admin/app');
-const serviceAccount = require('../../../../serviceAccountKey.json');
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
 
 if (!getApps().length) {
   admin.initializeApp({

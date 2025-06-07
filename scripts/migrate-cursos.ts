@@ -2,11 +2,11 @@ import { cursosService } from '../lib/cursos';
 import * as path from 'path';
 import * as admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
-import * as serviceAccount from '../serviceAccountKey.json';
 import * as fs from 'fs';
 
 // Inicializar firebase-admin solo si no está inicializado
 if (!getApps().length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount as any),
     projectId: serviceAccount.project_id,
